@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+
+# Video Test NextJS Project
+=====================================
+
+## Overview
+-----------
+
+This project is a NextJS application designed to manage and display videos. It features a user-friendly interface for uploading, viewing, and managing video content.
+
+## Features
+------------
+
+*   Video upload functionality using TusVideoUploader
+*   Video display and playback
+*   File upload and management
+*   API endpoints for fetching video and file data
+*   MongoDB integration for data storage
+*   User-friendly interface using React and NextJS
 
 ## Getting Started
+---------------
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   Node.js installed on your system
+*   MongoDB installed and running on your system
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  Clone the repository using `git clone`
+2.  Navigate to the project directory using `cd`
+3.  Install dependencies using `npm install` or `yarn install`
+4.  Start the development server using `npm run dev` or `yarn dev`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### API Endpoints
 
-## Learn More
+*   `/api/videos`: Fetches a list of videos
+*   `/api/files`: Fetches a list of files
+*   `/api/upload/video`: Uploads a video file
+*   `/api/upload/file`: Uploads a file
+*   `/api/video/status/:id`: Fetches the status of a video by ID
 
-To learn more about Next.js, take a look at the following resources:
+## Components
+------------
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*   `TusVideoUploader`: Handles video uploads
+*   `FileUploader`: Handles file uploads
+*   `VideoPlayer`: Displays and plays video content
+*   `FileList`: Displays a list of files
+*   `VideoList`: Displays a list of videos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Models
+---------
 
-## Deploy on Vercel
+*   `Video`: Represents a video document in the MongoDB database
+*   `File`: Represents a file document in the MongoDB database
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Utilities
+------------
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*   `connectDB`: Establishes a connection to the MongoDB database
+*   `generateBunnyStreamAuth`: Generates authentication signature for Bunny Stream API
+
+## Dependencies
+------------
+
+*   `next`: NextJS framework
+*   `react`: React library
+*   `mongodb`: MongoDB driver
+*   `mongoose`: Mongoose ORM
+*   `tus-js-client`: TusJS client library
+*   `lucide-react`: Lucide React icons
+*   `sonner`: Sonner toast notifications
+*   `radix-ui`: Radix UI components
+
+## License
+-------
+
+This project is licensed under the MIT License. See `LICENSE` for details.

@@ -1,103 +1,393 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState, useEffect } from "react";
+import {
+  Play,
+  Download,
+  Eye,
+  Calendar,
+  FileIcon,
+  Video,
+  Image as ImageIcon,
+  FileText,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import TusVideoUploader from "@/components/TusVideoUploader";
+import FileUploader from "@/components/FileUploader";
+import { toast } from "sonner";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+interface Video {
+  _id: string;
+  title: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  duration?: number;
+  bunnyVideoId: string;
+  bunnyLibraryId: string;
+  status: "uploading" | "processing" | "ready" | "failed";
+  thumbnailUrl?: string;
+  playbackUrl?: string;
+  uploadedAt: string;
+  processedAt?: string;
+}
+
+interface File {
+  _id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  uploadedAt: string;
+  bunnyUrl?: string;
+  fileType: "image" | "document" | "other";
+}
+
+export default function HomePage() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+
+  const fetchVideos = async () => {
+    try {
+      const response = await fetch("/api/videos");
+      if (response.ok) {
+        const data = await response.json();
+        setVideos(data.videos);
+      }
+    } catch (error) {
+      console.error("Error fetching videos:", error);
+      toast.error("Failed to load videos");
+    }
+  };
+
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch("/api/files");
+      if (response.ok) {
+        const data = await response.json();
+        setFiles(data.files);
+      }
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      toast.error("Failed to load files");
+    }
+  };
+
+  const checkVideoStatus = async (videoId: string) => {
+    try {
+      const response = await fetch(`/api/video/status/${videoId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setVideos((prev) =>
+          prev.map((video) => (video._id === videoId ? data.video : video))
+        );
+      }
+    } catch (error) {
+      console.error("Error checking video status:", error);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchVideos(), fetchFiles()]);
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+  // Poll processing videos every 10 seconds
+  useEffect(() => {
+    const processingVideos = videos.filter(
+      (video) => video.status === "uploading" || video.status === "processing"
+    );
+
+    if (processingVideos.length > 0) {
+      const interval = setInterval(() => {
+        processingVideos.forEach((video) => {
+          checkVideoStatus(video._id);
+        });
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
+  }, [videos]);
+
+  const handleUploadComplete = () => {
+    fetchVideos();
+    fetchFiles();
+  };
+
+  const getFileIcon = (file: File) => {
+    switch (file.fileType) {
+      case "image":
+        return <ImageIcon className="h-4 w-4" />;
+      case "document":
+        return <FileText className="h-4 w-4" />;
+      default:
+        return <FileIcon className="h-4 w-4" />;
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      uploading: { variant: "secondary" as const, text: "Uploading" },
+      processing: { variant: "secondary" as const, text: "Processing" },
+      ready: { variant: "default" as const, text: "Ready" },
+      failed: { variant: "destructive" as const, text: "Failed" },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig];
+    return <Badge variant={config.variant}>{config.text}</Badge>;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            File & Video Manager
+          </h1>
+          <p className="text-xl text-gray-600">
+            Upload, manage, and stream your files and videos
+          </p>
+        </div>
+
+        {/* Upload Section */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+            Upload Content
+          </h2>
+          <Tabs defaultValue="video" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="video">Videos</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
+            </TabsList>
+            <TabsContent value="video" className="mt-6">
+              <TusVideoUploader onUploadComplete={handleUploadComplete} />
+            </TabsContent>
+            <TabsContent value="files" className="mt-6">
+              <FileUploader onUploadComplete={handleUploadComplete} />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Videos Section */}
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <Video className="h-6 w-6" />
+              Videos ({videos.length})
+            </h2>
+
+            {videos.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Video className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No videos uploaded yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {videos.map((video) => (
+                  <Card key={video._id} className="overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            {video.title}
+                          </h3>
+                          <p className="text-sm text-gray-500 truncate">
+                            {video.originalName}
+                          </p>
+                        </div>
+                        {getStatusBadge(video.status)}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                        <span>{formatFileSize(video.size)}</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(video.uploadedAt)}
+                        </span>
+                      </div>
+
+                      {video.status === "ready" && video.playbackUrl && (
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                onClick={() => setSelectedVideo(video)}
+                                className="flex-1"
+                              >
+                                <Play className="h-4 w-4 mr-2" />
+                                Watch
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl">
+                              <DialogTitle className="sr-only">
+                                Watch Video
+                              </DialogTitle>
+                              <div className="aspect-video">
+                                <iframe
+                                  src={video.playbackUrl}
+                                  width="100%"
+                                  height="100%"
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="rounded-lg"
+                                ></iframe>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
+
+                      {video.status === "failed" && (
+                        <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                          Video processing failed. Please try uploading again.
+                        </div>
+                      )}
+
+                      {(video.status === "uploading" ||
+                        video.status === "processing") && (
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span className="text-sm text-blue-700">
+                              {video.status === "uploading"
+                                ? "Uploading..."
+                                : "Processing video..."}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Files Section */}
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <FileIcon className="h-6 w-6" />
+              Files ({files.length})
+            </h2>
+
+            {files.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <FileIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">No files uploaded yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {files.map((file) => (
+                  <Card key={file._id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {getFileIcon(file)}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {file.originalName}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              {file.mimeType}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="capitalize">
+                          {file.fileType}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                        <span>{formatFileSize(file.size)}</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(file.uploadedAt)}
+                        </span>
+                      </div>
+
+                      {file.bunnyUrl && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(file.bunnyUrl, "_blank")}
+                            className="flex-1"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = file.bunnyUrl!;
+                              link.download = file.originalName;
+                              link.click();
+                            }}
+                            className="flex-1"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
