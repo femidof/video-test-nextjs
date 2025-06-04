@@ -104,7 +104,7 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  // Poll processing videos every 10 seconds
+  // Poll processing videos every 1 seconds
   useEffect(() => {
     const processingVideos = videos.filter(
       (video) => video.status === "uploading" || video.status === "processing"
@@ -115,7 +115,7 @@ export default function HomePage() {
         processingVideos.forEach((video) => {
           checkVideoStatus(video._id);
         });
-      }, 10000);
+      }, 1000);
 
       return () => clearInterval(interval);
     }
