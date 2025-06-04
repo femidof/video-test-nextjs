@@ -8,6 +8,13 @@
 
 This project is a NextJS application designed to manage and display videos. It features a user-friendly interface for uploading, viewing, and managing video content.
 
+
+## Why I made this project
+------------
+
+Uploading attachments could be a challenge for users. This project addresses this challenge by providing a simple and user-friendly interface for uploading and displaying videos using TusVideoUploader, Bunny Stream and Bunny Storage.
+
+
 ## Features
 ------------
 
