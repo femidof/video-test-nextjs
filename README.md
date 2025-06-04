@@ -81,6 +81,20 @@ Uploading attachments could be a challenge for users. This project addresses thi
 *   `sonner`: Sonner toast notifications
 *   `radix-ui`: Radix UI components
 
+## Environment Variables
+-------------------------
+
+Create a `.env` file in the root of your project with the following variables:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/
+BUNNY_STREAM_LIBRARY_ID=your-library-id
+BUNNY_STREAM_API_KEY=your-api-key
+BUNNY_STORAGE_API_KEY=your-api-key
+BUNNY_STORAGE_ZONE_NAME=your-zone-name
+```
+Remember to replace `your-library-id`, `your-api-key`s, `your-zone-name` with your actual values.
+
 ## License
 -------
 
